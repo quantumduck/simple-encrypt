@@ -1,1 +1,4 @@
-console.log('Project executed.');
+import { ConsoleLogger } from './util';
+
+const logger = new ConsoleLogger();
+logger.notice('Project executed.');
