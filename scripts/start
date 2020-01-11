@@ -1,0 +1,24 @@
+#!/bin/bash
+# Run this stript to start the application.
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+if [ "$1" = "--prod" ]
+then
+  scripts/build --prod
+else
+  scripts/build
+fi
+
+echo ""
+
+if $ok && [ "$1" = "--debug" ]
+then
+  echo "> node --nolazy --inspect-brk=9339 dist/index.js"
+  node --nolazy --inspect-brk=9339 dist/index.js
+else
+  echo "> node dist/index.js"
+  node dist/index.js
+fi
+

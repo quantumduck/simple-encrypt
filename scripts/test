@@ -1,0 +1,11 @@
+#!/bin/bash
+# Use this script to run unit tests and linting
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+echo "> jest --coverage"
+node_modules/.bin/jest --coverage
+
+echo ""
+scripts/lint
