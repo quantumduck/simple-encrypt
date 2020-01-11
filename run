@@ -1,0 +1,42 @@
+#!/bin/bash
+# Generic script runner
+
+set -e
+cd "$(dirname $0)";
+
+case $1 in
+  bootstrap)
+    scripts/bootstrap ;;
+  build)
+    scripts/build ;;
+  build-prod)
+    scripts/build --prod ;;
+  clean)
+    scripts/clean ;;
+  debug)
+    scripts/start --debug ;;
+  lint)
+    scripts/lint ;;
+  lint-fix)
+    scripts/lint-fix ;;
+  start)
+    scripts/start ;;
+  start-prod)
+    scripts/start-prod ;;
+  test)
+    scripts/test ;;
+  *)
+    echo "Usage: ./run <command>"
+    echo ""
+    echo "Valid commands:"
+    echo "  bootstrap ....... installs packages"
+    echo "  build ........... compiles application"
+    echo "  build-prod ...... compiles applcation for production"
+    echo "  clean ........... removes build artifacts"
+    echo "  debug ........... start the application in debug mode"
+    echo "  lint ............ checks code for style violations"
+    echo "  lint-fix ........ automtically fixes lint errors if possible"
+    echo "  start ........... start the application"
+    echo "  start-prod ...... start the application in production mode"
+    echo "  test ............ runs tests"
+esac
