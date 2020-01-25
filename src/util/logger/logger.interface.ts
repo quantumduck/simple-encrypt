@@ -12,7 +12,7 @@ export interface Logger {
   debug: LogFunction;
 }
 
-export type LogFunction = (message: string, data: any) => void;
+export type LogFunction = (message: string, data?: any) => void;
 export type GenericLogFunction = (level: LogLevel, message: string) => void;
 
 export enum LogLevel {
