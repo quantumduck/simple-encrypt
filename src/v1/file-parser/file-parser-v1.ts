@@ -2,7 +2,7 @@ import { KeyData } from '..';
 import { Dictionary } from '../../util';
 import { EncryptedDataChunk } from '../v1.models';
 
-export class ParserV1 {
+export class FileParserV1 {
   readonly VERSION = 'v1';
 
   parseHeader(headerLines: string[]): KeyData {
