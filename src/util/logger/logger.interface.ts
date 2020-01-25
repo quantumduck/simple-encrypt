@@ -13,7 +13,6 @@ export interface Logger {
 }
 
 export type LogFunction = (message: string, data?: any) => void;
-export type GenericLogFunction = (level: LogLevel, message: string) => void;
 
 export enum LogLevel {
   EMERG,
