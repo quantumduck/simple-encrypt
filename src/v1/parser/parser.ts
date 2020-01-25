@@ -1,11 +1,11 @@
-import { EncryptedKeyData } from '..';
+import { KeyData } from '..';
 import { Dictionary } from '../../util';
 import { EncryptedDataChunk } from '../v1.models';
 
 export class ParserV1 {
   readonly VERSION = 'v1';
 
-  parseHeader(headerLines: string[]): EncryptedKeyData {
+  parseHeader(headerLines: string[]): KeyData {
     const parsed: Dictionary<string> = {};
     if (headerLines.length !== 6) {
       throw Error('Invalid V1 Header');
@@ -60,7 +60,7 @@ export class ParserV1 {
     return chunks;
   }
 
-  stringifyHeader(header: EncryptedKeyData): string[] {
+  stringifyHeader(header: KeyData): string[] {
     return [
       `V:${header.version}`,
       `ID:${header.id}`,
@@ -77,7 +77,7 @@ export class ParserV1 {
       .reduce((c1, c2) => [...c1, ...c2], []);
   }
 
-  stringify(header: EncryptedKeyData, data: EncryptedDataChunk[]): string[] {
+  stringify(header: KeyData, data: EncryptedDataChunk[]): string[] {
     return [...this.stringifyHeader(header), '', ...this.stringifyData(data)];
   }
 }
