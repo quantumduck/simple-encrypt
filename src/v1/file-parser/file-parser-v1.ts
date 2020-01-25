@@ -3,9 +3,9 @@ import { Dictionary } from '../../util';
 import { EncryptedDataChunk } from '../v1.models';
 
 export class FileParserV1 {
-  readonly VERSION = 'v1';
+  static readonly VERSION = 'v1';
 
-  parseHeader(headerLines: string[]): KeyData {
+  static parseHeader(headerLines: string[]): KeyData {
     const parsed: Dictionary<string> = {};
     if (headerLines.length !== 6) {
       throw Error('Invalid V1 Header');
@@ -40,7 +40,7 @@ export class FileParserV1 {
     };
   }
 
-  parseBody(bodyLines: string[]): EncryptedDataChunk[] {
+  static parseBody(bodyLines: string[]): EncryptedDataChunk[] {
     const chunks: EncryptedDataChunk[] = [];
     let isStartofChunk = true;
     let chunkIndex = 0;
@@ -60,7 +60,7 @@ export class FileParserV1 {
     return chunks;
   }
 
-  stringifyHeader(header: KeyData): string[] {
+  static stringifyHeader(header: KeyData): string[] {
     return [
       `V:${header.version}`,
       `ID:${header.id}`,
@@ -71,13 +71,13 @@ export class FileParserV1 {
     ];
   }
 
-  stringifyData(data: EncryptedDataChunk[]): string[] {
+  static stringifyData(data: EncryptedDataChunk[]): string[] {
     return data
       .map(chunk => [chunk.iv, ...chunk.data, ''])
       .reduce((c1, c2) => [...c1, ...c2], []);
   }
 
-  stringify(header: KeyData, data: EncryptedDataChunk[]): string[] {
+  static stringify(header: KeyData, data: EncryptedDataChunk[]): string[] {
     return [...this.stringifyHeader(header), '', ...this.stringifyData(data)];
   }
 }
