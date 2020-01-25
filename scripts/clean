@@ -1,0 +1,8 @@
+#!/bin/bash
+# Use this script to remove compiled code and other artifacts
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+echo "> rm -rf dist"
+rm -rf dist

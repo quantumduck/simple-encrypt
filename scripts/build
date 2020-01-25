@@ -1,0 +1,21 @@
+#!/bin/bash
+# Use this script to build the application
+# Run "build --prod" to build for production
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+scripts/clean
+echo ""
+
+if [ "$1" = "--prod" ]
+then
+  scripts/test
+  echo ""
+
+  echo "> tsc -p tsconfig.prod.json"
+  node_modules/.bin/tsc -p tsconfig.prod.json  
+else
+  echo "> tsc -p ."
+  node_modules/.bin/tsc -p .
+fi

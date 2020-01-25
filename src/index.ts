@@ -1,1 +1,2 @@
-console.log('Project executed.');
+export * from './main';
+export * from './main.models';

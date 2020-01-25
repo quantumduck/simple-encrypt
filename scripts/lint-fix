@@ -1,0 +1,8 @@
+#!/bin/bash
+# Run this script to fix lint errors if possible
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+echo "> gts fix"
+node_modules/.bin/gts fix

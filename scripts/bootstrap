@@ -1,0 +1,7 @@
+#!/bin/bash
+# Run this script immediately after cloning the repository
+
+set -e
+cd "$(dirname $0)"; cd ..
+
+npm install
