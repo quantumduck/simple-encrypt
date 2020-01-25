@@ -13,12 +13,12 @@ fi
 
 echo ""
 
-if $ok && [ "$1" = "--debug" ]
+if [ "$1" = "--debug" ]
 then
-  echo "> node --nolazy --inspect-brk=9339 dist/index.js"
-  node --nolazy --inspect-brk=9339 dist/index.js
+  echo "> node --nolazy --inspect-brk=9339 dist/run.js"
+  node --nolazy --inspect-brk=9339 dist/run.js
 else
-  echo "> node dist/index.js"
-  node dist/index.js
+  echo "> node dist/run.js"
+  node dist/run.js
 fi
 
