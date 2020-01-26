@@ -76,8 +76,7 @@ export class KeyManagerV1 {
     });
   }
 
-  async createNewKey() {
-    const keyId = await this.prompt('Enter a name for the new key: ');
+  async createNewKey(keyId: string) {
     if (this.keys[keyId]) {
       throw Error(`Key ${keyId} already exists`);
     }
@@ -100,9 +99,8 @@ export class KeyManagerV1 {
       return keyData.decryptedKey;
     }
 
-    const password = await this.prompt(
-      `Enter password to decrypt key ${keyData.id} `,
-      true
+    const password = await this.getPassword(
+      `Enter password to decrypt key ${keyData.id} `
     );
     const salt = Buffer.from(keyData.salt, this.ENCODING);
     const hash = await this.getPasswordHash(
@@ -136,10 +134,10 @@ export class KeyManagerV1 {
     return decryptedKey;
   }
 
-  private prompt(promtText: string, isPassword = false): Promise<string> {
+  private getPassword(promtText: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.consoleReader(
-        { prompt: promtText, silent: isPassword },
+        { prompt: promtText, silent: true },
         (error, password) => {
           error ? reject(error) : resolve(password);
         }
@@ -175,11 +173,10 @@ export class KeyManagerV1 {
   }
 
   private async createKeyData(keyId: string, key: Buffer): Promise<KeyData> {
-    const password = await this.prompt(
-      `Enter password to encrypt key ${keyId}: `,
-      true
+    const password = await this.getPassword(
+      `Enter password to encrypt key ${keyId}: `
     );
-    const passwordVerify = await this.prompt('Confirm password: ', true);
+    const passwordVerify = await this.getPassword('Confirm password: ');
     if (password !== passwordVerify) {
       return this.createKeyData(keyId, key);
     }

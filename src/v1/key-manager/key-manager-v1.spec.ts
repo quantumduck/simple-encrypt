@@ -218,44 +218,29 @@ describe('KeyManagerV1', () => {
       mockRandomBytes(mockSaltString);
     });
 
-    it('should prompt the user for the name of the key', async () => {
-      mockUserInput(newKeyId);
-      mockUserInput(mockPassword);
-      mockUserInput(mockPassword);
-
-      await target.createNewKey();
-      expect(fakeRead.mock.calls[0][0]).toEqual({
-        prompt: 'Enter a name for the new key: ',
-        silent: false,
-      });
-    });
-
     it('should prompt the user for the password', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
-      expect(fakeRead.mock.calls[1][0]).toEqual({
+      await target.createNewKey(newKeyId);
+      expect(fakeRead.mock.calls[0][0]).toEqual({
         prompt: `Enter password to encrypt key ${newKeyId}: `,
         silent: true,
       });
     });
 
     it('should prompt the user to confirm the password', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
-      expect(fakeRead.mock.calls[2][0]).toEqual({
+      await target.createNewKey(newKeyId);
+      expect(fakeRead.mock.calls[1][0]).toEqual({
         prompt: 'Confirm password: ',
         silent: true,
       });
     });
 
     it('should retry until a pair of passwords match', async () => {
-      mockUserInput(newKeyId);
       mockUserInput('password1');
       mockUserInput('password2');
       mockUserInput('password3');
@@ -263,45 +248,48 @@ describe('KeyManagerV1', () => {
       mockUserInput('password5');
       mockUserInput('password5');
 
-      await target.createNewKey();
-      expect(fakeRead.mock.calls.length).toBe(7);
+      await target.createNewKey(newKeyId);
+      expect(fakeRead.mock.calls.length).toBe(6);
+    });
+
+    it('should set the version to be v1', async () => {
+      mockUserInput(mockPassword);
+      mockUserInput(mockPassword);
+      await target.createNewKey(newKeyId);
+      expect(target.getKey(newKeyId).version).toBe(VERSION);
     });
 
     it('should set the id to be what the user inputs first', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).id).toBe(newKeyId);
     });
 
     it('should set a randomly generated initialization vector', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).iv).toBe(
         Buffer.from(mockIvString).toString(ENCODING)
       );
     });
 
     it('should set a randomly generated salt', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).salt).toBe(
         Buffer.from(mockSaltString).toString(ENCODING)
       );
     });
 
     it('should hash the password with the salt to produce a hash twice the desired key length', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
 
       const [
         [password, salt, iterationCount, length, digest],
@@ -315,11 +303,10 @@ describe('KeyManagerV1', () => {
     });
 
     it('should use the second half of the password hash as the signature', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).signature).toBe(
         Buffer.from(mockSignatureString).toString(ENCODING)
       );
@@ -338,11 +325,10 @@ describe('KeyManagerV1', () => {
         return fakeCipher;
       });
 
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
 
       expect(algorithm).toBe(ALG);
       expect(keyString).toBe(mockTempKeyString);
@@ -350,25 +336,27 @@ describe('KeyManagerV1', () => {
     });
 
     it('should set the encrypted key string using the cipher output', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).encryptedKey).toBe(
         Buffer.from(mockEncryptedKeyString).toString()
       );
     });
 
     it('should leave the key unlocked', async () => {
-      mockUserInput(newKeyId);
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey();
+      await target.createNewKey(newKeyId);
       expect(target.getKey(newKeyId).decryptedKey).toEqual(
         Buffer.from(mockKeyString)
       );
     });
+  });
+
+  describe('getDecryptedKey', () => {
+    it('should ', async () => {});
   });
 });
