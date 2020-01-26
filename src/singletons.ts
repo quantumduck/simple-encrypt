@@ -1,10 +1,11 @@
-import { Cipher, Decipher } from 'crypto';
-import { Options } from 'read';
+import * as crypto from 'crypto';
+import * as read from 'read';
 
+export const cryptoModule: CryptoModuleInterface = crypto;
 export interface CryptoModuleInterface {
   timingSafeEqual(buff1: Buffer, buff2: Buffer): boolean;
-  createCipheriv(algorithm: string, key: Buffer, iv: Buffer): Cipher;
-  createDecipheriv(algorithm: string, key: Buffer, iv: Buffer): Decipher;
+  createCipheriv(algorithm: string, key: Buffer, iv: Buffer): crypto.Cipher;
+  createDecipheriv(algorithm: string, key: Buffer, iv: Buffer): crypto.Decipher;
   randomBytes(
     size: number,
     callback: (err: null | Error, bytes: Buffer) => void
@@ -19,7 +20,8 @@ export interface CryptoModuleInterface {
   ): void;
 }
 
+export const readModule: ReadModuleInterface = read;
 export type ReadModuleInterface = (
-  options: Options,
+  options: read.Options,
   callback: (error: null | Error, result: string, isDefault: boolean) => void
 ) => void;

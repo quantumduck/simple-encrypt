@@ -1,11 +1,11 @@
-import { Dictionary } from '../../util';
-import { KeyData } from '../v1.models';
-import * as crypto from 'crypto';
-import * as read from 'read';
 import {
+  cryptoModule,
+  readModule,
   CryptoModuleInterface,
   ReadModuleInterface,
-} from './key-manager.models';
+} from '../../singletons';
+import { Dictionary } from '../../util';
+import { KeyData } from '../v1.models';
 
 export class KeyManagerV1 {
   readonly VERSION = 'v1';
@@ -22,8 +22,8 @@ export class KeyManagerV1 {
   private keys: Dictionary<KeyData>;
 
   constructor(
-    private consoleReader: ReadModuleInterface = read,
-    private cryptoService: CryptoModuleInterface = crypto
+    private consoleReader: ReadModuleInterface = readModule,
+    private cryptoService: CryptoModuleInterface = cryptoModule
   ) {
     this.keys = {};
   }
