@@ -5,6 +5,37 @@ import { EncryptedDataChunk } from '../v1.models';
 export class FileParserV1 {
   static readonly VERSION = 'v1';
 
+  static parseFile(fileLines: string[]) {
+    const chunks = this.splitFile(fileLines);
+    const header = this.parseHeader(chunks[0]);
+    const body = this.parseBody(chunks.slice(1));
+    return { header, body };
+  }
+
+  static stringify(header: KeyData, body: EncryptedDataChunk[]): string[] {
+    return [...this.stringifyHeader(header), '', ...this.stringifyBody(body)];
+  }
+
+  static splitFile(fileLines: string[]) {
+    const chunks: string[][] = [];
+    let currentChunk: string[] = [];
+
+    fileLines.forEach(line => {
+      if (line === '' && currentChunk.length > 0) {
+        chunks.push(currentChunk.slice());
+        currentChunk = [];
+      } else if (!this.isComment(line)) {
+        currentChunk.push(line);
+      }
+    });
+
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk);
+    }
+
+    return chunks;
+  }
+
   static parseHeader(headerLines: string[]): KeyData {
     const parsed: Dictionary<string> = {};
     if (headerLines.length !== 6) {
@@ -40,24 +71,13 @@ export class FileParserV1 {
     };
   }
 
-  static parseBody(bodyLines: string[]): EncryptedDataChunk[] {
-    const chunks: EncryptedDataChunk[] = [];
-    let isStartofChunk = true;
-    let chunkIndex = 0;
-
-    bodyLines.forEach(line => {
-      if (isStartofChunk && line !== '') {
-        isStartofChunk = false;
-        chunks.push({ iv: line, data: [] });
-      } else if (line === '') {
-        isStartofChunk = true;
-        chunkIndex++;
-      } else {
-        chunks[chunkIndex].data.push(line);
-      }
+  static parseBody(bodyChunks: string[][]): EncryptedDataChunk[] {
+    return bodyChunks.map(chunk => {
+      return {
+        iv: chunk[0],
+        data: chunk.slice(1),
+      };
     });
-
-    return chunks;
   }
 
   static stringifyHeader(header: KeyData): string[] {
@@ -71,13 +91,13 @@ export class FileParserV1 {
     ];
   }
 
-  static stringifyData(data: EncryptedDataChunk[]): string[] {
-    return data
+  static stringifyBody(body: EncryptedDataChunk[]): string[] {
+    return body
       .map(chunk => [chunk.iv, ...chunk.data, ''])
       .reduce((c1, c2) => [...c1, ...c2], []);
   }
 
-  static stringify(header: KeyData, data: EncryptedDataChunk[]): string[] {
-    return [...this.stringifyHeader(header), '', ...this.stringifyData(data)];
+  private static isComment(line: string): boolean {
+    return line.trim()[0] === '#';
   }
 }
