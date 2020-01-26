@@ -2,8 +2,12 @@ import { Dictionary } from '../../util';
 import { KeyData } from '../v1.models';
 import * as crypto from 'crypto';
 import * as read from 'read';
+import {
+  CryptoModuleInterface,
+  ReadModuleInterface,
+} from './key-manager.models';
 
-export class KeyManager {
+export class KeyManagerV1 {
   readonly VERSION = 'v1';
   readonly ALG = 'aes-128-cbc';
   readonly KEY_LENGTH = 16;
@@ -17,7 +21,10 @@ export class KeyManager {
 
   private keys: Dictionary<KeyData>;
 
-  constructor(private consoleReader = read, private cryptoService = crypto) {
+  constructor(
+    private consoleReader: ReadModuleInterface = read,
+    private cryptoService: CryptoModuleInterface = crypto
+  ) {
     this.keys = {};
   }
 
@@ -61,6 +68,12 @@ export class KeyManager {
 
     this.lockKey(keyId);
     delete this.keys[keyId];
+  }
+
+  reset() {
+    Object.keys(this.keys).forEach(keyId => {
+      this.removeKey(keyId);
+    });
   }
 
   async createNewKey() {
