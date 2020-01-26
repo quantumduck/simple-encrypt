@@ -100,7 +100,7 @@ export class KeyManagerV1 {
     }
 
     const password = await this.getPassword(
-      `Enter password to decrypt key ${keyData.id} `
+      `Enter password to decrypt key ${keyData.id}: `
     );
     const salt = Buffer.from(keyData.salt, this.ENCODING);
     const hash = await this.getPasswordHash(
@@ -113,8 +113,7 @@ export class KeyManagerV1 {
     if (!this.cryptoService.timingSafeEqual(verify1, verify2)) {
       console.error('Incorrect password');
       if (retries <= 0) {
-        console.error('Max retries exceeded; exiting');
-        process.exit(1);
+        throw Error('Max retries exceeded; exiting');
       }
       return this.getDecryptedKey(keyId, retries - 1);
     }

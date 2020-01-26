@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import * as read from 'read';
+import { KeyManagerV1 } from './v1';
 
 export const cryptoModule: CryptoModuleInterface = crypto;
 export interface CryptoModuleInterface {

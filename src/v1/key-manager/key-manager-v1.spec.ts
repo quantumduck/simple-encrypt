@@ -1,5 +1,7 @@
+import { timingSafeEqual } from 'crypto';
 import { KeyManagerV1 } from '..';
 import { KeyData } from '../v1.models';
+import { cryptoModule } from '../../singletons';
 
 describe('KeyManagerV1', () => {
   let target: KeyManagerV1;
@@ -14,6 +16,7 @@ describe('KeyManagerV1', () => {
   const ENCODING = 'base64';
   const MAX_RETRIES = 5;
 
+  const exampleKeyId = 'new1';
   const mockPassword = 'swordfish';
   const mockKeyString = 'SECRETKEY1234567';
   const mockEncryptedKeyString = '7654321YEKTERCES';
@@ -34,11 +37,11 @@ describe('KeyManagerV1', () => {
 
   const exampleKeyData: KeyData = {
     version: 'v1',
-    id: 'key1',
+    id: exampleKeyId,
     encryptedKey: mockEncryptedKeyString,
-    iv: 'iv1',
-    salt: 'salt1',
-    signature: 'sig1',
+    iv: Buffer.from(mockIvString).toString(ENCODING),
+    salt: Buffer.from(mockSaltString).toString(ENCODING),
+    signature: Buffer.from(mockSignatureString).toString(ENCODING),
   };
 
   const fakeCipher = {
@@ -68,6 +71,8 @@ describe('KeyManagerV1', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
+    fakeCrypto.timingSafeEqual.mockImplementation(timingSafeEqual);
+
     fakeCrypto.randomBytes.mockImplementation((length: number, callback) => {
       callback(null, Buffer.alloc(length));
     });
@@ -84,6 +89,11 @@ describe('KeyManagerV1', () => {
     fakeCipher.final.mockReturnValue(mockEncryptedKeyString.slice(3));
 
     target = new KeyManagerV1(fakeRead, fakeCrypto);
+  });
+
+  it('should construct itself', () => {
+    target = new KeyManagerV1();
+    expect(target.constructor.name).toBe('KeyManagerV1');
   });
 
   describe('addKey', () => {
@@ -159,6 +169,13 @@ describe('KeyManagerV1', () => {
   });
 
   describe('removeKey', () => {
+    it('should return immediately if the key does not exist', () => {
+      const missingId = 'missingno';
+      target.addKey({ ...exampleKeyData });
+      target.removeKey(missingId);
+      expect(target.getKey(exampleKeyId)).toEqual(exampleKeyData);
+    });
+
     it('should delete the key data', () => {
       target.addKey({ ...exampleKeyData });
       target.removeKey(exampleKeyData.id);
@@ -210,21 +227,24 @@ describe('KeyManagerV1', () => {
   });
 
   describe('createNewKey', () => {
-    const newKeyId = 'new1';
-
     beforeEach(() => {
       mockRandomBytes(mockKeyString);
       mockRandomBytes(mockIvString);
       mockRandomBytes(mockSaltString);
     });
 
+    it('should throw an error if the key already exists', async () => {
+      target.addKey(exampleKeyData);
+      await expect(target.createNewKey(exampleKeyId)).rejects.toThrow();
+    });
+
     it('should prompt the user for the password', async () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
+      await target.createNewKey(exampleKeyId);
       expect(fakeRead.mock.calls[0][0]).toEqual({
-        prompt: `Enter password to encrypt key ${newKeyId}: `,
+        prompt: `Enter password to encrypt key ${exampleKeyId}: `,
         silent: true,
       });
     });
@@ -233,7 +253,7 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
+      await target.createNewKey(exampleKeyId);
       expect(fakeRead.mock.calls[1][0]).toEqual({
         prompt: 'Confirm password: ',
         silent: true,
@@ -248,30 +268,30 @@ describe('KeyManagerV1', () => {
       mockUserInput('password5');
       mockUserInput('password5');
 
-      await target.createNewKey(newKeyId);
+      await target.createNewKey(exampleKeyId);
       expect(fakeRead.mock.calls.length).toBe(6);
     });
 
     it('should set the version to be v1', async () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).version).toBe(VERSION);
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).version).toBe(VERSION);
     });
 
     it('should set the id to be what the user inputs first', async () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).id).toBe(newKeyId);
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).id).toBe(exampleKeyId);
     });
 
     it('should set a randomly generated initialization vector', async () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).iv).toBe(
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).iv).toBe(
         Buffer.from(mockIvString).toString(ENCODING)
       );
     });
@@ -280,8 +300,8 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).salt).toBe(
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).salt).toBe(
         Buffer.from(mockSaltString).toString(ENCODING)
       );
     });
@@ -289,7 +309,7 @@ describe('KeyManagerV1', () => {
     it('should hash the password with the salt to produce a hash twice the desired key length', async () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
-      await target.createNewKey(newKeyId);
+      await target.createNewKey(exampleKeyId);
 
       const [
         [password, salt, iterationCount, length, digest],
@@ -306,8 +326,8 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).signature).toBe(
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).signature).toBe(
         Buffer.from(mockSignatureString).toString(ENCODING)
       );
     });
@@ -328,7 +348,7 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
+      await target.createNewKey(exampleKeyId);
 
       expect(algorithm).toBe(ALG);
       expect(keyString).toBe(mockTempKeyString);
@@ -339,8 +359,8 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).encryptedKey).toBe(
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).encryptedKey).toBe(
         Buffer.from(mockEncryptedKeyString).toString()
       );
     });
@@ -349,14 +369,232 @@ describe('KeyManagerV1', () => {
       mockUserInput(mockPassword);
       mockUserInput(mockPassword);
 
-      await target.createNewKey(newKeyId);
-      expect(target.getKey(newKeyId).decryptedKey).toEqual(
+      await target.createNewKey(exampleKeyId);
+      expect(target.getKey(exampleKeyId).decryptedKey).toEqual(
         Buffer.from(mockKeyString)
       );
     });
   });
 
   describe('getDecryptedKey', () => {
-    it('should ', async () => {});
+    beforeEach(async () => {
+      mockRandomBytes(mockKeyString);
+      mockRandomBytes(mockIvString);
+      mockRandomBytes(mockSaltString);
+
+      mockUserInput(mockPassword);
+      mockUserInput(mockPassword);
+
+      await target.createNewKey(exampleKeyId);
+      target.lockKey(exampleKeyId);
+    });
+
+    it('should return key withough prompting for password if it is alrady unlocked', async () => {
+      const id = 'id2';
+      fakeRead.mockClear();
+      target.addKey({
+        ...exampleKeyData,
+        id,
+        decryptedKey: Buffer.from(mockKeyString),
+      });
+
+      const result = await target.getDecryptedKey(id);
+
+      expect(result).toEqual(Buffer.from(mockKeyString));
+      expect(fakeRead).not.toHaveBeenCalled();
+    });
+
+    it('should prompt for a password to unlock the key if locked', async () => {
+      fakeRead.mockClear();
+      mockUserInput(mockPassword);
+      await target.getDecryptedKey(exampleKeyId);
+      expect(fakeRead.mock.calls[0][0]).toEqual({
+        prompt: `Enter password to decrypt key ${exampleKeyId}: `,
+        silent: true,
+      });
+    });
+
+    it('should hash the password with the salt to produce a hash twice the desired key length', async () => {
+      mockUserInput(mockPassword);
+      await target.getDecryptedKey(exampleKeyId);
+
+      const [
+        [password, salt, iterationCount, length, digest],
+      ] = fakeCrypto.pbkdf2.mock.calls;
+
+      expect(password).toBe(mockPassword);
+      expect(salt).toEqual(Buffer.from(mockSaltString));
+      expect(iterationCount).toBe(ITER_COUNT);
+      expect(length).toBe(2 * KEY_LENGTH);
+      expect(digest).toBe(HASH_DIGEST);
+    });
+
+    it('should verify the password by comparing the signature and the second half of the hasth', async () => {
+      let storedSignature = '';
+      let signagureFromHash = '';
+      mockUserInput(mockPassword);
+
+      fakeCrypto.timingSafeEqual.mockReset();
+      fakeCrypto.timingSafeEqual.mockImplementationOnce((sig1, sig2) => {
+        storedSignature = sig1.toString();
+        signagureFromHash = sig2.toString();
+        return storedSignature === signagureFromHash;
+      });
+
+      await target.getDecryptedKey(exampleKeyId);
+      expect(fakeCrypto.timingSafeEqual).toHaveBeenCalled();
+      expect(storedSignature).toEqual(mockSignatureString);
+      expect(signagureFromHash).toEqual(mockSignatureString);
+    });
+
+    it('should retry if the signature from the password hash does not match', async () => {
+      const badSignature = 'BADSIGNATURE1234';
+      mockUserInput('wrongPassword');
+      mockUserInput(mockPassword);
+
+      fakeCrypto.pbkdf2.mockReset();
+      fakeCrypto.pbkdf2.mockImplementationOnce((p, s, i, l, d, callback) => {
+        callback(null, Buffer.from(mockTempKeyString + badSignature));
+      });
+      fakeCrypto.pbkdf2.mockImplementationOnce((p, s, i, l, d, callback) => {
+        callback(null, Buffer.from(mockTempKeyString + mockSignatureString));
+      });
+
+      await target.getDecryptedKey(exampleKeyId);
+      expect(fakeCrypto.timingSafeEqual).toHaveBeenCalledTimes(2);
+      expect(fakeCrypto.pbkdf2).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw an error if the maximum number of retries is execeeded', async () => {
+      const badSignature = 'BADSIGNATURE1234';
+      const badPassword = 'tunafish';
+
+      for (let i = 0; i <= MAX_RETRIES; i++) {
+        mockUserInput(badPassword);
+      }
+
+      fakeCrypto.pbkdf2.mockReset();
+      fakeCrypto.pbkdf2.mockImplementation((p, s, i, l, d, callback) => {
+        callback(null, Buffer.from(mockTempKeyString + badSignature));
+      });
+
+      await expect(target.getDecryptedKey(exampleKeyId)).rejects.toThrow();
+
+      expect(fakeCrypto.timingSafeEqual).toHaveBeenCalledTimes(MAX_RETRIES + 1);
+      expect(fakeCrypto.pbkdf2).toHaveBeenCalledTimes(MAX_RETRIES + 1);
+    });
+
+    it('should create a new Decipher object using the initialization vector and the first half of the password hash', async () => {
+      let algorithm = '';
+      let keyString = '';
+      let ivString = '';
+
+      fakeCrypto.createDecipheriv.mockReset();
+      fakeCrypto.createDecipheriv.mockImplementationOnce((alg, key, iv) => {
+        algorithm = alg;
+        keyString = key.toString();
+        ivString = iv.toString();
+        return fakeCipher;
+      });
+
+      mockUserInput(mockPassword);
+      await target.getDecryptedKey(exampleKeyId);
+
+      expect(algorithm).toBe(ALG);
+      expect(keyString).toBe(mockTempKeyString);
+      expect(ivString).toBe(mockIvString);
+    });
+
+    it('should set the decrypted key to be the return value from the Decipher call', async () => {
+      const decryptedKey = 'super secret key II';
+      fakeDecipher.update.mockReset();
+      fakeDecipher.update.mockReturnValue(Buffer.from(decryptedKey));
+
+      mockUserInput(mockPassword);
+      await target.getDecryptedKey(exampleKeyId);
+
+      expect(target.getKey(exampleKeyId).decryptedKey).toEqual(
+        Buffer.from(decryptedKey)
+      );
+    });
+
+    it('should return the decrypted key', async () => {
+      mockUserInput(mockPassword);
+      expect(await target.getDecryptedKey(exampleKeyId)).toEqual(
+        Buffer.from(mockKeyString)
+      );
+    });
+  });
+
+  describe('changeKeyPassword', () => {
+    const newIvString = 'IV2_IV2_IV2_IV2_';
+    const newSaltString = 'SALT2SALT2SALT2_';
+    const newPassword = 'hunter2';
+
+    beforeEach(async () => {
+      mockRandomBytes(mockKeyString);
+      mockRandomBytes(mockIvString);
+      mockRandomBytes(mockSaltString);
+
+      mockRandomBytes(newIvString);
+      mockRandomBytes(newSaltString);
+
+      mockUserInput(mockPassword);
+      mockUserInput(mockPassword);
+
+      await target.createNewKey(exampleKeyId);
+      target.lockKey(exampleKeyId);
+    });
+
+    it('shoud set the new salt value', async () => {
+      mockUserInput(mockPassword);
+      mockUserInput(newPassword);
+      mockUserInput(newPassword);
+
+      await target.changeKeyPassword(exampleKeyId);
+      const newKeyData = await target.getKey(exampleKeyId);
+      expect(newKeyData.salt).toBe(
+        Buffer.from(newSaltString).toString(ENCODING)
+      );
+    });
+
+    it('shoud set the new IV value', async () => {
+      mockUserInput(mockPassword);
+      mockUserInput(newPassword);
+      mockUserInput(newPassword);
+
+      await target.changeKeyPassword(exampleKeyId);
+      const newKeyData = await target.getKey(exampleKeyId);
+      expect(newKeyData.iv).toBe(Buffer.from(newIvString).toString(ENCODING));
+    });
+
+    it('should set the new encrypted key', async () => {
+      const part1 = 'KeyPart1';
+      const part2 = 'KeyPart2';
+      const newEncryptedKeyString = part1 + part2;
+
+      mockUserInput(mockPassword);
+      mockUserInput(newPassword);
+      mockUserInput(newPassword);
+
+      fakeCipher.update.mockReset();
+      fakeCipher.final.mockReset();
+      fakeCipher.update.mockReturnValue(part1);
+      fakeCipher.final.mockReturnValue(part2);
+
+      await target.changeKeyPassword(exampleKeyId);
+      const newKeyData = await target.getKey(exampleKeyId);
+      expect(newKeyData.encryptedKey).toBe(newEncryptedKeyString);
+    });
+
+    it('should not change the key', async () => {
+      mockUserInput(mockPassword);
+      mockUserInput(newPassword);
+      mockUserInput(newPassword);
+
+      await target.changeKeyPassword(exampleKeyId);
+      const key = await target.getDecryptedKey(exampleKeyId);
+      expect(key).toEqual(Buffer.from(mockKeyString));
+    });
   });
 });
